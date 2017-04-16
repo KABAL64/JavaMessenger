@@ -1,0 +1,13 @@
+subprojects {
+    apply plugin: 'java'
+
+    sourceCompatibility = 1.8
+    group = 'javaMessenger'
+    version = '0.0.1' 
+    compileJava.options.encoding = 'UTF-8' 
+
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+}

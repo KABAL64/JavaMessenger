@@ -1,0 +1,27 @@
+*.class
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+# *.jar
+# *.war
+# *.ear
+# пока не исключаем. вдруг еще понадобятся сторонние библиотеки, которых нет в репозиториях
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+
+# системные папки gradle, idea
+.gradle
+.idea
+classes
+out
+client/build
+client/model
+model/build
+gradle/wrapper
+gradlew
+gradlew.bat
+tests/build
+tests/model

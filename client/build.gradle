@@ -1,0 +1,5 @@
+dependencies {
+    compile project(':model')
+}
+
+sourceSets.main.resources.srcDir 'src/main/java'
