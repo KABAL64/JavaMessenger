@@ -6,6 +6,8 @@ import ru.bfgsoft.model.core.CollectionsHelper;
 import ru.bfgsoft.model.core.EntityManager;
 import ru.bfgsoft.model.core.StringHelper;
 import ru.bfgsoft.model.db.Db;
+import ru.bfgsoft.model.message.Message;
+import ru.bfgsoft.model.message.MessageManager;
 
 import java.util.List;
 import java.util.UUID;
@@ -68,7 +70,20 @@ public class UserManager extends EntityManager<User> {
 
     @Override
     public void delete(User entity) throws BlException {
-        getDb().deleteEntityById(userTableName, entity.getId());
+
+        MessageManager messageManager=new MessageManager(getDb());
+        List<Message> userMessages=messageManager.getListByUserId(entity.getId());
+
+        getDb().beginTransaction();
+        try {
+            messageManager.deleteList(userMessages);
+            getDb().deleteEntityById(userTableName, entity.getId());
+
+            getDb().commitTransaction();
+        } catch (Throwable ex) {
+            getDb().rollbackTransaction();
+            throw ex;
+        }
     }
 
     /**

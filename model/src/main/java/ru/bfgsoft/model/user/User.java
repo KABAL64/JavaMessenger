@@ -25,6 +25,7 @@ public class User  implements DbEntity{
      * Получить {@link #id}
      * @return {@link #id}
      */
+    @Override
     public UUID getId() {
         return id;
     }

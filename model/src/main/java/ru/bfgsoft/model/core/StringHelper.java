@@ -22,6 +22,16 @@ public class StringHelper {
 
 
     /**
+     * Проверка на то что строка null или пустая
+     * @param str Проверяемая строка
+     * @return true, если строка null или пустая, иначе - false
+     */
+    public static boolean isNullOrEmpty(String str) {
+        return str == null || str.isEmpty();
+    }
+
+
+    /**
      * Получение подстроки (по стартовому индексу и длине)
      * @param string Строка
      * @param start  Стартовая позиция в строке

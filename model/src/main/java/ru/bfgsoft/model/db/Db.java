@@ -3,6 +3,7 @@ package ru.bfgsoft.model.db;
 import com.google.gson.Gson;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
+import ru.bfgsoft.model.core.CollectionsHelper;
 import ru.bfgsoft.model.sysClass.Config;
 
 import java.util.*;
@@ -50,8 +51,7 @@ public class Db {
      * Запуск транзакции.
      */
     public void beginTransaction() {
-        if (transaction == null)
-            transaction = jedis.multi();
+        transaction = jedis.multi();
     }
 
     /**
@@ -59,6 +59,7 @@ public class Db {
      */
     public void rollbackTransaction() {
         transaction.discard();
+        transaction = null;
     }
 
     /**
@@ -66,6 +67,7 @@ public class Db {
      */
     public void commitTransaction() {
         transaction.exec();
+        transaction = null;
     }
 
 
@@ -78,10 +80,13 @@ public class Db {
     public <T extends DbEntity> void addEntity(T entity, String tableName) throws DbException {
 
         try {
-            String result = jedis.set(String.format("%1$s:%2$s", tableName, entity.getId()),
-                    gson.toJson(entity));
-            if (!Objects.equals(result, "OK"))
-                throw new Exception(result);
+            if (transaction != null) {
+                transaction.set(String.format("%1$s:%2$s", tableName, entity.getId()), gson.toJson(entity));
+            } else {
+                String result = jedis.set(String.format("%1$s:%2$s", tableName, entity.getId()), gson.toJson(entity));
+                if (!Objects.equals(result, "OK"))
+                    throw new Exception(result);
+            }
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -141,13 +146,29 @@ public class Db {
      * @param id        Идентификатор
      */
     public void deleteEntityById(String tableName, UUID id) throws DbException {
+        deleteEntities(tableName, new ArrayList<UUID>() {{add(id);}});
+    }
+
+    /**
+     * Удаление списка сущностей
+     * @param tableName Наименование таблицы
+     * @param idList    Список идентификаторов
+     */
+    public void deleteEntities(String tableName, List<UUID> idList) throws DbException {
+        if (idList.isEmpty()) return;
+
         try {
-            jedis.del(String.format("%1$s:%2$s", tableName, id));
+            String keys =
+                    String.join(", ", CollectionsHelper.select(idList, x -> String.format("%1$s:%2$s", tableName, x)));
+
+            if (transaction != null)
+                transaction.del(keys);
+            else
+                jedis.del(keys);
 
         } catch (Exception ex) {
             ex.printStackTrace();
             throw new DbException();
         }
     }
-
 }

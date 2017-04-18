@@ -23,6 +23,9 @@ public class UserTests extends Assert {
     private static final String userLoginNext;
     private static final String userFioNext;
 
+    private static final UUID userIdSecond;
+    private static final String userLoginSecond;
+
     // Задаем параметры для текущего запуска
     static {
         userId = UUID.randomUUID();
@@ -32,6 +35,9 @@ public class UserTests extends Assert {
         userIdNext = UUID.randomUUID();
         userLoginNext = TestsHelper.getRandomString(20);
         userFioNext = TestsHelper.getRandomString(10);
+
+        userIdSecond = UUID.randomUUID();
+        userLoginSecond = TestsHelper.getRandomString(20);
     }
 
     /** Подключение к БД */
@@ -41,6 +47,22 @@ public class UserTests extends Assert {
      * Менеджер по работе с пользователями
      */
     private UserManager userManager;
+
+    /**
+     * Получить {@link #userId}
+     * @return {@link #userId}
+     */
+    public static UUID getUserId() {
+        return userId;
+    }
+
+    /**
+     * Получить {@link #userIdSecond}
+     * @return {@link #userIdSecond}
+     */
+    public static UUID getUserIdSecond() {
+        return userIdSecond;
+    }
 
     /**
      * Инициализация тестов
@@ -56,6 +78,12 @@ public class UserTests extends Assert {
         user.setLogin(userLogin);
         user.setFio(userFio);
         TestsHelper.addInTable(db, "user", user);
+
+        // Добавляем пользователя 2
+        User secondUser = new User();
+        secondUser.setId(userIdSecond);
+        secondUser.setLogin(userLoginSecond);
+        TestsHelper.addInTable(db, "user", secondUser);
     }
 
     /**
@@ -183,10 +211,9 @@ public class UserTests extends Assert {
         }
     }
 
-
     /**
      * Проверка пользователя
-     * @param user Пользователь
+     * @param user           Пользователь
      * @param isCheckDefault Проверка первоначального пользователя
      */
     private void checkUser(User user, boolean isCheckDefault) {
@@ -203,5 +230,6 @@ public class UserTests extends Assert {
     public void clear() {
         TestsHelper.deleteFromTable(db, "user", userId);
         TestsHelper.deleteFromTable(db, "user", userIdNext);
+        TestsHelper.deleteFromTable(db, "user", userIdSecond);
     }
 }
