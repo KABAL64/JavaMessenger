@@ -3,6 +3,7 @@ mainClassName = "ru.bfgsoft.client.Main"
 
 dependencies {
     compile project(':model')
+    compile group: 'commons-io', name: 'commons-io', version: '2.5'
 }
 
 sourceSets.main.resources.srcDir 'src/main/java'

@@ -1,14 +1,24 @@
 package ru.bfgsoft.client;
 
+import com.google.gson.Gson;
 import javafx.util.Pair;
+import redis.clients.jedis.JedisPubSub;
 import ru.bfgsoft.model.core.BlException;
 import ru.bfgsoft.model.core.ParseHelper;
+import ru.bfgsoft.model.db.Db;
+import ru.bfgsoft.model.message.Message;
 import ru.bfgsoft.model.message.MessageManager;
 import ru.bfgsoft.model.user.User;
 import ru.bfgsoft.model.user.UserManager;
 
+import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+
+import org.apache.commons.io.FilenameUtils;
 
 /**
  * Основное меню
@@ -35,8 +45,6 @@ public class MainMenu {
             add(new Pair<>("Экспорт сообщений в файл", () -> exportMessages()));
             add(new Pair<>("Назад", null));
         }
-
-
     };
 
     /** Менеджер пользователей */
@@ -51,12 +59,23 @@ public class MainMenu {
     /** Текущий пользователь */
     private User currentUser;
 
+    /** Подписчик на сообщения */
+    private JedisPubSub subscriber;
+
     /**
      * Конструктор
      */
     public MainMenu() {
         userManager = new UserManager();
         messageManager = new MessageManager(userManager.getDb());
+
+        subscriber = new JedisPubSub() {
+            @Override
+            public void onMessage(String channel, String message) {
+                super.onMessage(channel, message);
+                System.out.println(message);
+            }
+        };
     }
 
     /**
@@ -131,9 +150,10 @@ public class MainMenu {
 
         clearConsole();
         System.out.println("Регистрация нового пользователя");
-        System.out.println("Логин пользователя: ");
+        System.out.print("Логин пользователя: ");
         String userLogin = scanner.next();
-        System.out.println("ФИО пользователя: ");
+        scanner.nextLine();
+        System.out.print("ФИО пользователя: ");
         String userFio = scanner.next();
 
         try {
@@ -144,8 +164,8 @@ public class MainMenu {
             System.out.println("Регистрация прошла успешно");
         } catch (BlException e) {
             System.out.println(e.getMessage());
-            waitUser();
         }
+        waitUser();
     }
 
     /**
@@ -165,12 +185,12 @@ public class MainMenu {
             for (User user : users) {
                 System.out.println(String.format("%1$-" + maxLoginLength + "s %2$s", user.getLogin(), user.getFio()));
             }
-            waitUser();
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
-            waitUser();
         }
+
+        waitUser();
     }
 
     /**
@@ -188,7 +208,7 @@ public class MainMenu {
     /**
      * Очистка консоли
      */
-    public final void clearConsole() {
+    private void clearConsole() {
         try {
 
             final String os = System.getProperty("os.name");
@@ -205,21 +225,115 @@ public class MainMenu {
      * Показать сообщения
      */
     private void showMessages() {
-        //TODO Показать сообщения
+        if (currentUser == null) return;
+
+        clearConsole();
+        System.out.println("История сообщений");
+
+        try {
+            List<Message> messages = messageManager.getListByUserId(currentUser.getId());
+
+            if (messages.isEmpty())
+                throw new Exception("Нет сообщений");
+
+            for (Message message : messages) {
+                if (message.getSenderId().equals(currentUser.getId())) {
+                    System.out.println("Отправлено пользователю: " + message.getReceiverLogin());
+                } else
+                    System.out.println("Получено от: " + message.getSenderLogin());
+                System.out.println(message.getText());
+            }
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        //Мониторим сообщения этого пользователя
+        new Thread(() -> {
+            try {
+                Db.getNewInstance().subscribe(subscriber, currentUser.getId().toString());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        waitUser();
+        subscriber.unsubscribe();
     }
 
     /**
      * Экспорт сообщений в файл
      */
     private void exportMessages() {
-        //TODO Экспорт сообщений в файл
+        if (currentUser == null) return;
+
+        clearConsole();
+        System.out.println("Выберите файл для сохранения...");
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Сохранить файл");
+
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Файлы JSON (*.json)", "json");
+        chooser.setFileFilter(filter);
+        chooser.addChoosableFileFilter(filter);
+
+        int result = chooser.showSaveDialog(null);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+
+            if (!FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("json"))
+                file = new File(file.getParentFile(), FilenameUtils.getBaseName(file.getName()) + ".json");
+
+            try (FileWriter fileWriter = new FileWriter(file)) {
+                Gson gson = new Gson();
+                List<Message> userMessages = messageManager.getListByUserId(currentUser.getId());
+                fileWriter.write(gson.toJson(userMessages));
+                System.out.println("Сохранено");
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+            waitUser();
+        }
     }
+
 
     /**
      * Отправить сообщение
      */
     private void sendMessage() {
-        //TODO Отправить сообщение
+        if (currentUser == null) return;
+
+        clearConsole();
+        System.out.println("Отправить сообщение");
+
+        try {
+            System.out.print("Логин получателя: ");
+            String receiverLogin = scanner.next();
+
+            if (Objects.equals(receiverLogin, currentUser.getLogin()))
+                throw new Exception("Нельзя отправлять сообщения себе");
+
+            User receiver = userManager.getByLogin(receiverLogin);
+            if (receiver == null)
+                throw new Exception("Получатель не найден");
+
+            scanner.nextLine();
+            System.out.print("Текст сообщения: ");
+            String messageText = scanner.nextLine();
+
+            Message message = new Message();
+            message.setSenderId(currentUser.getId());
+            message.setReceiverId(receiver.getId());
+            message.setReceiverLogin(receiverLogin);
+            message.setText(messageText);
+
+            messageManager.add(message);
+            System.out.println("Сообщение отправлено");
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        waitUser();
     }
 
 }

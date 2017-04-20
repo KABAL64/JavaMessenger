@@ -155,6 +155,15 @@ public class MessageTests extends Assert {
             }
             newMessage.setSenderId(messageSenderIdNext);
 
+            newMessage.setReceiverId(messageSenderIdNext);
+            try {
+                messageManager.add(newMessage);
+                fail();
+            } catch (Exception ex) {
+                assertTrue(ex.getMessage().contains("Нельзя отправлять сообщения себе"));
+            }
+            newMessage.setReceiverId(messageReceiverIdNext);
+
             newMessage.setText("");
             try {
                 messageManager.add(newMessage);

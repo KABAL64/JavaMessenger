@@ -67,9 +67,14 @@ public class MessageManager extends EntityManager<Message> {
 
         checkData(entity);
 
+        entity.setSenderLogin(new UserManager(getDb()).getById(entity.getSenderId()).getLogin());
         entity.setReceiverLogin(new UserManager(getDb()).getById(entity.getReceiverId()).getLogin());
 
         getDb().addEntity(entity, messageTableName);
+
+        getDb().publish(entity.getReceiverId().toString(),
+                String.format("Получено от: %1$s\n%2$s", entity.getSenderLogin(), entity.getText()));
+
         return entity.getId();
     }
 
@@ -97,6 +102,9 @@ public class MessageManager extends EntityManager<Message> {
 
         if (entity.getReceiverId() == null)
             throw new BlException("Необходимо заполнить получателя");
+
+        if (entity.getReceiverId().equals(entity.getSenderId()))
+            throw new BlException("Нельзя отправлять сообщения себе");
 
         UserManager userManager = new UserManager(getDb());
         if (userManager.getById(entity.getReceiverId()) == null)

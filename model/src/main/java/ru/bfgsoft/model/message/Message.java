@@ -22,6 +22,9 @@ public class Message implements DbEntity {
     /** Сообщение */
     private String text;
 
+    /** Логин отправителя */
+    private String senderLogin;
+
     /** Логин получателя */
     private String receiverLogin;
 
@@ -106,6 +109,22 @@ public class Message implements DbEntity {
      */
     public void setReceiverLogin(String receiverLogin) {
         this.receiverLogin = receiverLogin;
+    }
+
+    /**
+     * Получить {@link #senderLogin}
+     * @return {@link #senderLogin}
+     */
+    public String getSenderLogin() {
+        return senderLogin;
+    }
+
+    /**
+     * Установить {@link #senderLogin}
+     * @param senderLogin {@link #senderLogin}
+     */
+    public void setSenderLogin(String senderLogin) {
+        this.senderLogin = senderLogin;
     }
 
     //endregion

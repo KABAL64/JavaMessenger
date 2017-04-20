@@ -2,6 +2,7 @@ package ru.bfgsoft.model.db;
 
 import com.google.gson.Gson;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.Transaction;
 import ru.bfgsoft.model.core.CollectionsHelper;
 import ru.bfgsoft.model.sysClass.Config;
@@ -35,6 +36,25 @@ public class Db {
     private Db() {
         jedis = new Jedis(Config.getInstance().getProperty("host"),
                 Integer.parseInt(Config.getInstance().getProperty("port")));
+    }
+
+    /**
+     * Опубликовать сообщение на канале
+     * @param channel Канал
+     * @param message Сообщение
+     */
+    public void publish(final String channel, final String message) {
+        jedis.publish(channel, message);
+
+    }
+
+    /**
+     * Подписать на каналы
+     * @param jedisPubSub Подписчик
+     * @param channels Каналы
+     */
+    public void subscribe(JedisPubSub jedisPubSub, String... channels) {
+        jedis.subscribe(jedisPubSub, channels);
     }
 
 
