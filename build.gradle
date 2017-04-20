@@ -4,9 +4,18 @@ subprojects {
     sourceCompatibility = 1.8
     group = 'javaMessenger'
     version = '0.0.1'
+    compileJava.options.encoding = 'UTF-8'
 
     repositories {
         mavenCentral()
         mavenLocal()
+    }
+
+    javadoc {
+        options.charSet = 'UTF-8'
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
     }
 }
